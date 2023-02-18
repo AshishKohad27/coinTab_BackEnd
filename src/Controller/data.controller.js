@@ -101,17 +101,15 @@ const DeleteData = async () => {
 };
 
 const GetDataFilter = async (filter) => {
+    console.log("filter:", filter);
     try {
         let name = filter.name || "";
-        // console.log('name:', name)
         let country = filter.country || "";
-        // console.log('country:', country)
         let gender = filter.gender || "";
-        // console.log('gender:', gender);
-        let ageL = filter.ageL || 100
-        let ageR = filter.ageR || 0
-        // console.log('age:', age)
-
+        let ageL = filter.ageL || 100;
+        let ageR = filter.ageR || 0;
+        let sortName = filter.sortName || "";
+        let sortAge = filter.sortAge || "";
 
         globalPage = filter.page;
         globalLimit = filter.limit;
@@ -124,33 +122,57 @@ const GetDataFilter = async (filter) => {
         let data = [];
 
         data = await dataModel
-            .find({
-                "gender": gender || { $regex: gender, $options: "i" },
-                "name.first": { $regex: name, $options: "i" },
-                "location.country": country || { $regex: country, $options: "i", },
-                $and: [{ "dob.age": { $lte: ageL, $gte: ageR } }],
-                $caseSensitive: false
-            })
+            .find(
+                {
+                    gender: gender || { $regex: gender, $options: "i" },
+                    "name.first": { $regex: name, $options: "i" },
+                    "location.country": country || { $regex: country, $options: "i" },
+                    $and: [{ "dob.age": { $lte: ageL, $gte: ageR } }],
+                    $caseSensitive: false,
+                }
+            )
             .limit(+globalLimit)
-            .skip((globalPage - 1) * +globalLimit);
+            .skip((globalPage - 1) * +globalLimit)
+            .sort(
+                sortName
+                    ? {
+                        "name.first":
+                            sortName === "asc" ? 1 : sortName === "desc" ? -1 : "",
+                    }
+                    : ""
+            );
 
         let countryL = {};
         for (let i = 0; i < data.length; i++) {
             if (countryL[data[i].location.country] === undefined) {
-                countryL[data[i].location.country] = 1
+                countryL[data[i].location.country] = 1;
             } else {
-                countryL[data[i].location.country]++
+                countryL[data[i].location.country]++;
             }
-            // console.log("country:", data[i].location.country);
+        }
+        let countryArray = [];
+        let countryCount = [];
+        for (let key in countryL) {
+            countryArray.push(key);
+            countryCount.push(countryL[key]);
         }
 
         const getD = await dataModel.find({});
+        let filterLength = await dataModel.find({
+            gender: gender || { $regex: gender, $options: "i" },
+            "name.first": { $regex: name, $options: "i" },
+            "location.country": country || { $regex: country, $options: "i" },
+            $and: [{ "dob.age": { $lte: ageL, $gte: ageR } }],
+            $caseSensitive: false,
+        });
+        let paginationLimit = Math.ceil(filterLength.length / globalLimit);
         return {
-            list: countryL,
+            list: { countryCount    , countryArray, countryL },
             filter,
             length: {
-                filterLength: data.length || 0,
-                allLength: getD.length || 0,
+                filterLength: filterLength.length || 0,
+                allDataLength: getD.length || 0,
+                paginationLimit,
             },
             data: data || [],
             flag: true,
