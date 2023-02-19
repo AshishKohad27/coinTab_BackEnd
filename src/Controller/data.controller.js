@@ -109,7 +109,6 @@ const GetDataFilter = async (filter) => {
         let ageL = filter.ageL || 100;
         let ageR = filter.ageR || 0;
         let sortName = filter.sortName || "";
-        let sortAge = filter.sortAge || "";
 
         globalPage = filter.page;
         globalLimit = filter.limit;
